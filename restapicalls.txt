@@ -1,0 +1,420 @@
+Installing groovy in openshift:
+
+curl -s get.sdkman.io | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install groovy
+groovy -version
+
+
+'sh','-c',"curl -s -w '%{http_code}' -o response.txt -k -X POST -H \"Authorization: Bearer jx-ymH_R4fR8Zb7XTu4X0IApjkkGdImTmDWdfi9Y1VU\"  -H 'Accept: application/json' -H 'Content-Type: application/json' https://openshift:6443/apis/project.openshift.io/v1/projects -d '{ \"kind\": \"ProjectRequest\", \"apiVersion\": \"project.openshift.io/v1\", \"metadata\": { \"name\": \"demo\" }}' > response_code.txt "].execute()
+
+
+
+POST /apis/project.openshift.io/v1/projects HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+Content-Type: application/json'
+{
+  "kind": "Project",
+  "apiVersion": "project.openshift.io/v1",
+  "metadata": {
+    "name":"demo"
+  }
+}
+
+//Creating project
+
+curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer qolXOlvPwu6pazGen3jGLSns7oI3DFDOFLHAn6Ruyts" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+     https://openshift:6443/apis/project.openshift.io/v1/projects <<'EOF'
+{
+  "kind": "Project",
+  "apiVersion": "project.openshift.io/v1",
+  "metadata": {
+    "name":"demo"
+  }
+}
+EOF
+
+
+//Creating Pod
+
+curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer rzTHcguT5zUuT_UhkWCbbVxTz9O6B_5nqdU2t8CB6uY" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/api/v1/namespaces/demo/pods <<'EOF'
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "nginx",
+    "labels": {
+      "app": "nginx-app"
+    },
+    "namespace": "demo"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "nginx",
+        "image": "bitnami/nginx",
+        "ports": [
+          {
+            "containerPort": 8080
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+
+
+
+
+//Creating Service
+
+curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer rzTHcguT5zUuT_UhkWCbbVxTz9O6B_5nqdU2t8CB6uY" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/api/v1/namespaces/demo/services <<'EOF'
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "nginx",
+    "namespace": "demo"
+  },
+  "spec": {
+    "selector": {
+      "app": "nginx-app"
+    },
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 80,
+        "targetPort": 8080
+      }
+    ]
+  }
+}
+EOF
+
+
+
+//Creating Route
+
+curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer rzTHcguT5zUuT_UhkWCbbVxTz9O6B_5nqdU2t8CB6uY" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/apis/route.openshift.io/v1/namespaces/demo/routes <<'EOF'
+{
+  "apiVersion": "route.openshift.io/v1",
+  "kind": "Route",
+  "metadata": {
+    "name": "nginx",
+    "namespace": "demo"
+  },
+  "spec": {
+    "path": "/",
+    "to": {
+      "kind": "Service",
+      "name": "nginx"
+    },
+    "port": {
+      "targetPort": 8080
+    }
+  }
+}
+EOF
+
+
+
+
+
+//For deleting project
+curl -k \
+    -X DELETE \
+    -H "Authorization: Bearer 4K5Xg0d8bdT6gddTQH-ZckAdxR-oHXPnPNKWBdXY5UE" \
+    -H 'Accept: application/json' \
+    https://openshift:6443/apis/project.openshift.io/v1/projects/demo 
+
+
+
+
+// YAML for creating a resource quota - 1
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+spec:
+  hard:
+    pods: "4" 
+    requests.cpu: "1" 
+    requests.memory: 1Gi 
+    requests.ephemeral-storage: 2Gi 
+    limits.cpu: "2" 
+    limits.memory: 2Gi 
+    limits.ephemeral-storage: 4Gi 
+
+// YAML for creating a resource quota - 2
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: "2"
+    app.storageclass.storage.k8s.io/requests.storage: "3"
+    backup.storageclass.storage.k8s.io/requests.storage: "4"
+    logging.storageclass.storage.k8s.io/requests.storage: "5"
+    services.nodeports: "6"
+
+
+
+//Creating a resource quota - 1
+curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer qjaOzXgZnYBh1C4GaUmbAmW92tm7f3UwPdhXFexoMzg" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/api/v1/namespaces/demo/resourcequotas <<'EOF'
+{
+  "kind": "ResourceQuota",
+  "apiVersion": "v1",
+  "metadata": {
+    "name":"demo",
+    "namespace":"demo"
+  },
+  "spec": {
+    "hard": {
+      "requests.cpu": "1",
+      "requests.memory": "2Gi",
+      "app.storageclass.storage.k8s.io/requests.storage": "3Gi",
+      "backup.storageclass.storage.k8s.io/requests.storage": "4Gi",
+      "logging.storageclass.storage.k8s.io/requests.storage": "5Gi",
+      "services.nodeports": "6"
+    }
+  }
+  
+}
+EOF
+
+//Creating a resource quota - 2
+curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer JpwX39RtZBwA_-HFEwYwV0YjaAzZwz8h3zE0VCkbg7g" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/api/v1/namespaces/demo/resourcequotas <<'EOF'
+{
+  "kind": "ResourceQuota",
+  "apiVersion": "v1",
+  "metadata": {
+    "name":"compute-resources",
+    "namespace":"demo"
+  },
+  "spec": {
+    "hard": {
+      "pods": "4",
+      "requests.cpu": "1",
+      "requests.memory": "1Gi",
+      "requests.ephemeral-storage": "2Gi",
+      "limits.cpu": "2",
+      "limits.memory": "2Gi",
+      "limits.ephemeral-storage": "4Gi"
+    }
+  }
+  
+}
+EOF
+
+
+//Updating a resource quota
+curl -k \
+    -X PUT \
+    -d @- \
+    -H "Authorization: Bearer c_jFlut7DINsT0Yu0MHffjIHACDj-QY22PB3pUsqgLA" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/api/v1/namespaces/demo/resourcequotas/compute-resources <<'EOF'
+{
+  "kind": "ResourceQuota",
+  "apiVersion": "v1",
+  "metadata": {
+    "name":"compute-resources",
+    "namespace":"demo"
+  },
+  "spec": {
+    "hard": {
+      "pods": "4",
+      "requests.cpu": "1",
+      "requests.memory": "1Gi",
+      "requests.ephemeral-storage": "2Gi",
+      "limits.cpu": "2",
+      "limits.memory": "2Gi",
+      "limits.ephemeral-storage": "4Gi"
+    }
+  }
+  
+}
+EOF
+
+
+//Patching a resource quota
+curl -k \
+    -X PATCH \
+    -d @- \
+    -H "Authorization: Bearer c_jFlut7DINsT0Yu0MHffjIHACDj-QY22PB3pUsqgLA" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/strategic-merge-patch+json' \
+    https://openshift:6443/api/v1/namespaces/demo/resourcequotas/compute-resources <<'EOF'
+{
+  "kind": "ResourceQuota",
+  "apiVersion": "v1",
+  "metadata": {
+    "name":"compute-resources",
+    "namespace":"demo"
+  },
+  "spec": {
+    "hard": {
+      "pods": "5"
+    }
+  }
+}
+EOF
+
+//NetNamespace Curl command
+
+//this command works but the chalenge is that we need to get the resourceVersion field from the existing netnamespace
+
+
+curl -k \
+    -X PUT \
+    -d @- \
+    -H "Authorization: Bearer JpwX39RtZBwA_-HFEwYwV0YjaAzZwz8h3zE0VCkbg7g" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://openshift:6443/apis/network.openshift.io/v1/netnamespaces/test <<'EOF'
+{    "apiVersion": "network.openshift.io/v1",
+    "egressIPs": [
+        "192.168.1.102"
+    ],
+    "kind": "NetNamespace",
+    "metadata": {
+        "name": "test",
+        "selfLink": "/apis/network.openshift.io/v1/netnamespaces/test",
+        "resourceVersion": "311752"
+    },
+    "netid": 3133281,
+    "netname": "test"
+}
+EOF
+
+//NetNamespace Curl command
+
+//this returns the netnamespace resource Version can be extracted from it
+curl -k \
+    -H "Authorization: Bearer JpwX39RtZBwA_-HFEwYwV0YjaAzZwz8h3zE0VCkbg7g" \
+    -H 'Accept: application/json' \
+    https://openshift:6443/apis/network.openshift.io/v1/netnamespaces/test
+
+
+PWD for Digital Rig code link: Sada~$6409
+
+
+
+
+'sh','-c',"curl -s -w '%{http_code}' -o response.txt -k -X POST -H \"Authorization: Bearer jx-ymH_R4fR8Zb7XTu4X0IApjkkGdImTmDWdfi9Y1VU\"  -H 'Accept: application/json' -H 'Content-Type: application/json' https://openshift:6443/apis/project.openshift.io/v1/projects -d '{ \"kind\": \"ProjectRequest\", \"apiVersion\": \"project.openshift.io/v1\", \"metadata\": { \"name\": \"demo\" }}' > response_code.txt "].execute()
+
+
+
+
+def main()
+    {
+    //POST Method for creating project
+    def openshifturl = new URL('https://console-openshift-console-2886795280-443-simba02.environments.katacoda.com')
+    def openshiftConnection = openshifturl.openConnection()
+    ///def message = '{ "kind": "Project","apiVersion": "project.openshift.io/v1", "metadata": { "name":"demo" } }'
+    ///openshiftConnection.setRequestMethod("POST")
+    ///openshiftConnection.setDoOutput(true)
+    ///openshiftConnection.setRequestProperty("PRIVATE-TOKEN","IDhohUctxf_zXMDxbAhLf1W42YgA5l9ksh6uur7Ym-o")
+    openshiftConnection.setRequestProperty("Content-Type", "application/json")
+    openshiftConnection.getOutputStream().write(message.getBytes("UTF-8"));
+    def responseCode = openshiftConnection.getResponseCode();
+    println responseCode
+    //if(responseCode.equals(200)) {
+    //    println openshiftConnection.getInputStream().getText()
+    //}
+    }
+main();
+
+
+
+
+ curl -k \
+    -H "Authorization: Bearer ynoTrICxjEmMzM2T7QkwQ0CsTcic8YQJOPqw3lv0M30" \
+    -H 'Accept: application/json' \
+    https://openshift:6443/apis/project.openshift.io/v1/projects
+
+
+
+curl -k \
+    -H "Authorization: Bearer ynoTrICxjEmMzM2T7QkwQ0CsTcic8YQJOPqw3lv0M30" \
+    -H 'Accept: application/json' \
+    https://openshift:6443/apis/project.openshift.io/v1/projects/default
+
+
+
+curl -k \
+    -H "Authorization: Bearer _zoLZvcFnYcqyErpJv7C6KOvkr4sZt04mZ96McagC9o" \
+    -H 'Accept: application/json' \
+    https://openshift:6443/api/v1/namespaces/daimler/resourcequotas/daimler
+
+
+
+def getProject(){
+
+  //Function for Getting Project details
+    def token = "_zoLZvcFnYcqyErpJv7C6KOvkr4sZt04mZ96McagC9o"
+    println token
+    def projectName = "daimler"
+    def projectUrl = "https://openshift:6443/api/v1/namespaces/$projectName/resourcequotas/$projectName" 
+    def shellProject = [ 'bash','-c',"curl -s -w '%{http_code}' -o response.txt -k -H \"Authorization: Bearer $token\" -H 'Accept: application/json' $projectUrl > response_codeproject.txt "].execute()
+    shellProject.waitFor()
+    println shellProject.err.text
+    println shellProject.text
+    String responseCodeProject = new File('response_codeproject.txt').text
+    println responseCodeProject
+
+  
+}
+def main(){
+
+    //def projectName = "demo"
+    //def token = "_zoLZvcFnYcqyErpJv7C6KOvkr4sZt04mZ96McagC9o"
+
+    //Get Project details
+    getProject()
+    //def output=getProject()
+    //println output
+}
+
+main();
